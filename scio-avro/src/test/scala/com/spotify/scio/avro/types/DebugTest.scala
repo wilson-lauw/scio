@@ -17,6 +17,7 @@
 
 package com.spotify.scio.avro.types
 
+import org.apache.avro.Schema
 import org.scalatest._
 class DebugTest extends FlatSpec with Matchers {
 
@@ -39,8 +40,14 @@ class DebugTest extends FlatSpec with Matchers {
   class SameName
 
   it should "support nested record with same name as enclosing record" in {
-    val r = SameName(SameName$A(2))
-    SameName.toGenericRecord(r).getSchema.toString
+    println(SameName.schema.toString(true))
+    val r = SameName(SameName$A(1))
+    SameName.toGenericRecord(r)
+//    println(SameName$A)
+//    val schema2: Schema = SameName.toGenericRecord(r).getSchema
+//    println(schema2.toString(true))
+//    SameName.toGenericRecord(r).getSchema.toString
+    true
   }
 
 }

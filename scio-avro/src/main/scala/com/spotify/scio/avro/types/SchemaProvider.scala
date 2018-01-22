@@ -36,6 +36,9 @@ private[types] object SchemaProvider {
       throw new RuntimeException(s"Unsupported type $tpe.erasure")
     }
 
+    println(s"XXX schemaOf $tpe")
+    tpe.decls.foreach(println)
+
     toSchema(tpe)._1
   }
 
