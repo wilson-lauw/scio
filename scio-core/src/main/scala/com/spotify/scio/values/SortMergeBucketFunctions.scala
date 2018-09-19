@@ -4,6 +4,7 @@ import java.io.File
 import java.nio.channels.Channels
 
 import com.spotify.scio.ScioContext
+import com.spotify.scio.coders.Coder
 import com.spotify.scio.util.ScioUtil
 import org.apache.avro.Schema
 import org.apache.avro.file.{CodecFactory, DataFileStream, DataFileWriter}
@@ -46,7 +47,8 @@ object SortMergeBucketFunctions {
 
     // scalastyle:off cyclomatic.complexity
     // scalastyle:off method.length
-    def readAndJoin[K: ClassTag, T1 <: SpecificRecord : ClassTag, T2 <: SpecificRecord : ClassTag](
+    def readAndJoin[K: ClassTag : Coder, T1 <: SpecificRecord : ClassTag : Coder,
+    T2 <: SpecificRecord : ClassTag : Coder](
       path1: AvroPath[K, T1],
       path2: AvroPath[K, T2]
     )(implicit ordering: Ordering[K]): SCollection[(K, (T1, T2))] = {
@@ -124,11 +126,11 @@ object SortMergeBucketFunctions {
     }
   }
 
-  implicit class SortMergeBucketWrite[V <: SpecificRecord : ClassTag]
+  implicit class SortMergeBucketWrite[V <: SpecificRecord : ClassTag : Coder]
   (val self: SCollection[V]) extends Serializable {
 
     // @Todo: K must map to Schema.Type enum
-    def writeSMB[K : ClassTag](
+    def writeSMB[K : ClassTag : Coder](
                                path: String,
                                numBuckets: Int,
                                keyFieldName: String = "key"
@@ -143,11 +145,12 @@ object SortMergeBucketFunctions {
 
       self
         .groupBy(record => record.get(keyFieldPos).hashCode() % numBuckets)
-        .map { case (bucket, elements) =>
-          val outputResource = getResource(pathFormatter.format(bucketSigFig.format(bucket + 1)))
+        .map { case (bucket: Int, elements: Iterable[V]) =>
+          val outputResource = getResource(pathFormatter
+            .format(bucketSigFig.format(bucket + 1).toString))
           val writer: DataFileWriter[V] = avroWriter(outputResource, extractSchema[V], keyFieldPos)
 
-          elements.toList.sortBy(_.get(keyFieldPos).asInstanceOf[K]).foreach(writer.append)
+          elements.toList.sortBy(_.get(keyFieldPos).asInstanceOf[K]).foreach(writer.append(_))
 
           writer.close()
         }

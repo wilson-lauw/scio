@@ -740,6 +740,7 @@ lazy val scioExamples: Project = Project(
     sources in doc in Compile := List()
   )
   .dependsOn(
+    scioAvro,
     scioCore,
     scioBigQuery,
     scioBigtable,
